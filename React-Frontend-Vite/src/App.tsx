@@ -1,12 +1,15 @@
 import './App.css'
+import LoginPage from './login/components/LoginPage'
 
 function App() {
 
-  return (
-    <>
-      <div>Peerly</div>
-    </>
-  )
+    return (
+        <>
+            <div>
+                <LoginPage />
+            </div>
+        </>
+    )
 }
 
 export default App
