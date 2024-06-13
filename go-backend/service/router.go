@@ -30,15 +30,15 @@ func InitRouter(deps Dependencies) (router *mux.Router) {
 	v1 := fmt.Sprintf("application/vnd.%s.v1", config.AppName())
 
 	//core values
-	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(getCoreValueHandler(deps), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
+	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(getCoreValueHandler(deps.CoreValueService), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
 
-	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values", jwtAuthMiddleware(listCoreValuesHandler(deps), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
+	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values", jwtAuthMiddleware(listCoreValuesHandler(deps.CoreValueService), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
 
-	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values", jwtAuthMiddleware(createCoreValueHandler(deps), deps)).Methods(http.MethodPost).Headers(versionHeader, v1)
+	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values", jwtAuthMiddleware(createCoreValueHandler(deps.CoreValueService), deps)).Methods(http.MethodPost).Headers(versionHeader, v1)
 
-	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(deleteCoreValueHandler(deps), deps)).Methods(http.MethodDelete).Headers(versionHeader, v1)
+	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(deleteCoreValueHandler(deps.CoreValueService), deps)).Methods(http.MethodDelete).Headers(versionHeader, v1)
 
-	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(updateCoreValueHandler(deps), deps)).Methods(http.MethodPut).Headers(versionHeader, v1)
+	router.Handle("/organisations/{organisation_id:[0-9]+}/core_values/{id:[0-9]+}", jwtAuthMiddleware(updateCoreValueHandler(deps.CoreValueService), deps)).Methods(http.MethodPut).Headers(versionHeader, v1)
 
 	//reported recognition
 	router.Handle("/recognitions/{recognition_id:[0-9]+}/report", jwtAuthMiddleware(createReportedRecognitionHandler(deps), deps)).Methods(http.MethodPost).Headers(versionHeader, v1)
@@ -86,7 +86,7 @@ func InitRouter(deps Dependencies) (router *mux.Router) {
 	router.Handle("/organizations/{organization_id:[0-9]+}/badges/{id:[0-9]+}", jwtAuthMiddleware(deleteBadgeHandler(deps), deps)).Methods(http.MethodDelete).Headers(versionHeader, v1)
 
 	// Get S3 signed URL
-	router.Handle("/s3_signed_url", jwtAuthMiddleware(getS3SignedURLHandler(deps), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
+	// router.Handle("/s3_signed_url", jwtAuthMiddleware(getS3SignedURLHandler(deps), deps)).Methods(http.MethodGet).Headers(versionHeader, v1)
 
 	// Recognition Hi5 routes
 

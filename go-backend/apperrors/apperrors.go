@@ -115,3 +115,62 @@ var ErrFailedToCreate = errors.New("Failed to create database record")
 
 // ErrUnknown - Used when an unknown/unexpected error has ocurred. Try to avoid over-using this.
 var ErrUnknown = errors.New("unknown/unexpected error has occurred")
+
+//coreValues
+
+type CustomError string
+
+func (e CustomError) Error() string {
+	return string(e)
+}
+
+const (
+	BadRequest           = CustomError("Bad request")
+	InvalidId            = CustomError("Invalid id")
+	InernalServerError   = CustomError("Internal server error")
+	JSONParsingErrorReq  = CustomError("error in parsing request in json")
+	JSONParsingErrorResp = CustomError("error in parsing response in json")
+	OutOfRange           = CustomError("request value is out of range")
+	//repeated
+	OrganizationNotFound = CustomError("organization of given id not found")
+	InvalidContactEmail  = CustomError("Contact email is already present")
+	InvalidDomainName    = CustomError("Domain name is already present")
+	InvalidCoreValueData = CustomError("Invalid corevalue data")
+	TextFieldBlank       = CustomError("Text field cannot be blank")
+	DescFieldBlank       = CustomError("Description cannot be blank")
+	InvalidParentValue   = CustomError("Invalid parent core value")
+	InvalidOrgId         = CustomError("Invalid organisation")
+)
+
+// helper functions
+func ErrorResp(rw http.ResponseWriter, err error) {
+	// Create the ErrorStruct object for later use
+	statusCode := GetHTTPStatusCode(err)
+	errObj := ErrorStruct{
+		Message: err.Error(),
+		Status:  statusCode,
+	}
+
+	errJSON, err := json.Marshal(&errObj)
+	if err != nil {
+		log.Warn(err, "Error in AppErrors marshalling JSON", err)
+	}
+	rw.WriteHeader(statusCode)
+	rw.Header().Add("Content-Type", "application/json")
+	rw.Write(errJSON)
+}
+
+func GetHTTPStatusCode(err error) int {
+	switch err {
+	case InernalServerError, JSONParsingErrorResp:
+		return http.StatusInternalServerError
+	case OrganizationNotFound, InvalidCoreValueData, InvalidParentValue, InvalidOrgId:
+		return http.StatusNotFound
+	case InvalidId, JSONParsingErrorReq, TextFieldBlank, DescFieldBlank:
+		return http.StatusBadRequest
+	case InvalidContactEmail, InvalidDomainName:
+		return http.StatusConflict
+	default:
+		return http.StatusInternalServerError
+	}
+}
