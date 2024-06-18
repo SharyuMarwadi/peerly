@@ -17,7 +17,7 @@ func listCoreValuesHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		var organisationID string = ""
-		if vars["organisation_id"] == "" {
+		if vars["organisation_id"] != "" {
 			organisationID = vars["organisation_id"]
 		}
 
