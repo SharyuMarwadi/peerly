@@ -10,12 +10,14 @@ import (
 	"joshsoftware/peerly/config"
 	"joshsoftware/peerly/db"
 	"joshsoftware/peerly/tasks"
+	"net/http"
 
 	"joshsoftware/peerly/service"
 
 	"os"
 	"strconv"
 
+	"github.com/rs/cors"
 	logger "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/urfave/negroni"
@@ -92,10 +94,19 @@ func startApp() (err error) {
 	// Start up all the background tasks Peerly depends upon
 	tasks.Init(dep)
 
+	//cors
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"*"},
+	})
+
 	// mux router
 	router := api.InitRouter(dep)
 	// init web server
 	server := negroni.Classic()
+	server.Use(c)
 	server.UseHandler(router)
 
 	port := config.AppPort() // This can be changed to the service port number via environment variable.

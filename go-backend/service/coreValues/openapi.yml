@@ -1,4 +1,3 @@
-
 openapi: 3.0.3
 info:
   title: Swagger Peerly
@@ -165,6 +164,15 @@ paths:
           schema:
             type: integer
             format: int64
+        - in: header
+          name: Accept
+          required: true
+          description: Defines the media type and version of the API endpoint
+          schema:
+            enum:
+              - 'application/vnd.peerly.v1'
+            type: string
+
       responses:
         '200':
           description: successful operation
@@ -299,5 +307,4 @@ components:
         created_by: 
           type: integer
           format: int64
-          
           
