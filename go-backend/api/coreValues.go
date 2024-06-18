@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"joshsoftware/peerly/apperrors"
-	"joshsoftware/peerly/db"
 	"joshsoftware/peerly/pkg/dto"
 	corevalues "joshsoftware/peerly/service/coreValues"
 
@@ -17,11 +16,14 @@ import (
 func listCoreValuesHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
-		organisationID := vars["organisation_id"]
+		var organisationID string = ""
+		if vars["organisation_id"] == "" {
+			organisationID = vars["organisation_id"]
+		}
 
 		coreValues, err := coreValueSvc.ListCoreValues(req.Context(), organisationID)
 		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
+
 			apperrors.ErrorResp(rw, err)
 			return
 		}
@@ -36,7 +38,6 @@ func getCoreValueHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 
 		coreValue, err := coreValueSvc.GetCoreValue(req.Context(), vars["organisation_id"], vars["id"])
 		if err != nil {
-
 			apperrors.ErrorResp(rw, err)
 			return
 		}
@@ -49,7 +50,7 @@ func createCoreValueHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		const userId int64 = 1
-		var coreValue db.CoreValue
+		var coreValue dto.CreateCoreValueReq
 		err := json.NewDecoder(req.Body).Decode(&coreValue)
 		if err != nil {
 			logger.WithField("err", err.Error()).Error("Error while decoding request data")
@@ -73,15 +74,15 @@ func createCoreValueHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 func deleteCoreValueHandler(coreValueSvc corevalues.Service) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
-
-		err := coreValueSvc.DeleteCoreValue(req.Context(), vars["organisation_id"], vars["id"])
+		const userId int64 = 1
+		err := coreValueSvc.DeleteCoreValue(req.Context(), vars["organisation_id"], vars["id"], userId)
 		if err != nil {
 
 			apperrors.ErrorResp(rw, err)
 			return
 		}
 
-		dto.Repsonse(rw, http.StatusOK, nil)
+		dto.Repsonse(rw, http.StatusOK, dto.SuccessResponse{Data: "Delete successful"})
 	})
 }
 

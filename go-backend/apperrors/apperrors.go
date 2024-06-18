@@ -127,7 +127,7 @@ func (e CustomError) Error() string {
 const (
 	BadRequest           = CustomError("Bad request")
 	InvalidId            = CustomError("Invalid id")
-	InernalServerError   = CustomError("Internal server error")
+	InternalServerError  = CustomError("Internal server error")
 	JSONParsingErrorReq  = CustomError("error in parsing request in json")
 	JSONParsingErrorResp = CustomError("error in parsing response in json")
 	OutOfRange           = CustomError("request value is out of range")
@@ -140,6 +140,7 @@ const (
 	DescFieldBlank       = CustomError("Description cannot be blank")
 	InvalidParentValue   = CustomError("Invalid parent core value")
 	InvalidOrgId         = CustomError("Invalid organisation")
+	UniqueCoreValue      = CustomError("Choose a unique coreValue name")
 )
 
 // helper functions
@@ -162,11 +163,11 @@ func ErrorResp(rw http.ResponseWriter, err error) {
 
 func GetHTTPStatusCode(err error) int {
 	switch err {
-	case InernalServerError, JSONParsingErrorResp:
+	case InternalServerError, JSONParsingErrorResp:
 		return http.StatusInternalServerError
 	case OrganizationNotFound, InvalidCoreValueData, InvalidParentValue, InvalidOrgId:
 		return http.StatusNotFound
-	case InvalidId, JSONParsingErrorReq, TextFieldBlank, DescFieldBlank:
+	case InvalidId, JSONParsingErrorReq, TextFieldBlank, DescFieldBlank, UniqueCoreValue:
 		return http.StatusBadRequest
 	case InvalidContactEmail, InvalidDomainName:
 		return http.StatusConflict

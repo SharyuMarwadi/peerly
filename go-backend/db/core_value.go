@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"joshsoftware/peerly/apperrors"
 	"joshsoftware/peerly/pkg/dto"
 	"time"
@@ -15,12 +16,13 @@ type coreValueStore struct {
 }
 
 type CoreValueStorer interface {
-	ListCoreValues(ctx context.Context, organisationID int64) (coreValues []CoreValue, err error)
-	GetCoreValue(ctx context.Context, organisationID, coreValueID int64) (coreValue CoreValue, err error)
-	CreateCoreValue(ctx context.Context, organisationID int64, userId int64, coreValue CoreValue) (resp CoreValue, err error)
-	DeleteCoreValue(ctx context.Context, organisationID, coreValueID int64) (err error)
-	UpdateCoreValue(ctx context.Context, organisationID, coreValueID int64, coreValue dto.UpdateQueryRequest) (resp CoreValue, err error)
+	ListCoreValues(ctx context.Context, organisationID int64) (coreValues []dto.ListCoreValuesResp, err error)
+	GetCoreValue(ctx context.Context, organisationID, coreValueID int64) (coreValue dto.GetCoreValueResp, err error)
+	CreateCoreValue(ctx context.Context, organisationID int64, userId int64, coreValue dto.CreateCoreValueReq) (resp dto.CreateCoreValueResp, err error)
+	DeleteCoreValue(ctx context.Context, organisationID, coreValueID int64, userId int64) (err error)
+	UpdateCoreValue(ctx context.Context, organisationID, coreValueID int64, coreValue dto.UpdateQueryRequest) (resp dto.UpdateCoreValuesResp, err error)
 	CheckOrganisation(ctx context.Context, organisationId int64) (err error)
+	CheckUniqueCoreVal(ctx context.Context, organisationId int64, text string) (res bool, err error)
 }
 
 func NewCoreValueRepo(db *sqlx.DB) CoreValueStorer {
@@ -30,73 +32,37 @@ func NewCoreValueRepo(db *sqlx.DB) CoreValueStorer {
 }
 
 const (
-	listCoreValuesQuery  = `SELECT id, orgId, text, description, parentId  FROM coreValues WHERE orgId = $1`
-	getCoreValueQuery    = `SELECT id, orgId, text, description, parentId FROM coreValues WHERE orgId = $1 and id = $2`
-	createCoreValueQuery = `INSERT INTO coreValues (orgId, text,
-		description, parentId, thumbnailUrl,created_by, createdAt, updatedAt) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, orgId, text, description, parentId, thumbnailUrl`
+	listCoreValuesQuery  = `SELECT id, org_id, text, description, parent_id, created_at, updated_at  FROM coreValues WHERE org_id = $1 and soft_delete = false`
+	getCoreValueQuery    = `SELECT id, org_id, text, description, parent_id, soft_delete FROM coreValues WHERE org_id = $1 and id = $2`
+	createCoreValueQuery = `INSERT INTO coreValues (org_id, text,
+		description, parent_id, thumbnail_url,created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, org_id, text, description, parent_id, thumbnail_url, created_by, created_at`
 	// deleteSubCoreValueQuery = `DELETE FROM coreValues WHERE orgId = $1 and parentId = $2`
-	deleteSubCoreValueQuery = `UPDATE coreValues SET soft_delete = true WHERE orgId = $1 and parentId = $2`
+	deleteSubCoreValueQuery = `UPDATE coreValues SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and parent_id = $4`
 	// deleteCoreValueQuery    = `DELETE FROM coreValues WHERE orgId = $1 and id = $2`
-	deleteCoreValueQuery = `UPDATE coreValues SET soft_delete = true WHERE orgId = $1 and id = $2`
-	updateCoreValueQuery = `UPDATE coreValues SET (text, description, thumbnailurl, updatedAt) =
-		($1, $2, $3, $4) where id = $5 and orgId = $6 RETURNING id, orgId, text, description, parentId`
+	deleteCoreValueQuery = `UPDATE coreValues SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and id = $4`
+	updateCoreValueQuery = `UPDATE coreValues SET (text, description, thumbnail_url, updated_at) =
+		($1, $2, $3, $4) where id = $5 and org_id = $6 RETURNING id, org_id, text, description, parent_id, thumbnail_url, updated_at`
 
 	checkOrganisationQuery = `SELECT id from organizations WHERE id = $1`
+	checkUniqueCoreVal     = `SELECT id from coreValues WHERE org_id = $1 and text = $2`
 )
 
 // CoreValue - struct representing a core value object
 type CoreValue struct {
 	ID           int64     `db:"id" json:"id"`
-	OrgID        int64     `db:"orgid" json:"org_id"`
+	OrgID        int64     `db:"org_id" json:"org_id"`
 	Text         string    `db:"text" json:"text"`
 	Description  string    `db:"description" json:"description"`
-	ParentID     *int64    `db:"parentid" json:"parent_id"`
-	ThumbnailURL *string   `db:"thumbnailurl" json:"thumbnail_url"`
-	CreatedAt    time.Time `db:"createdat" json:"-"`
-	UpdatedAt    time.Time `db:"updatedat" json:"-"`
+	ParentID     *int64    `db:"parent_id" json:"parent_id"`
+	ThumbnailURL *string   `db:"thumbnail_url" json:"thumbnail_url"`
+	CreatedAt    time.Time `db:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"`
+	SoftDelete   bool      `db:"soft_delete"`
+	SoftDeleteBy int64     `db:"soft_delete_by"`
+	CreatedBy    int64     `db:"created_by"`
 }
 
-// // This function goes in service!
-// func validateParentCoreValue(ctx context.Context, storer Storer, organisationID, coreValueID int64) (ok bool) {
-// 	coreValue, err := storer.GetCoreValue(ctx, organisationID, coreValueID)
-// 	if err != nil {
-// 		logger.WithField("err", err.Error()).Error("Parent core value id not present")
-// 		return
-// 	}
-
-// 	if coreValue.ParentID != nil {
-// 		logger.Error("Invalid parent core value id")
-// 		return
-// 	}
-
-// 	return true
-// }
-
-// // This function goes to the service helper helper
-// // Validate - ensures the core value object has all the info it needs
-// func (coreValue CoreValue) Validate(ctx context.Context, storer Storer, organisationID int64) (valid bool, errFields map[string]string) {
-// 	errFields = make(map[string]string)
-
-// 	if coreValue.Text == "" {
-// 		errFields["text"] = "Can't be blank"
-// 	}
-// 	if coreValue.Description == "" {
-// 		errFields["description"] = "Can't be blank"
-// 	}
-// 	if coreValue.ParentID != nil {
-// 		if !validateParentCoreValue(ctx, storer, organisationID, *coreValue.ParentID) {
-// 			errFields["parent_id"] = "Invalid parent core value"
-// 		}
-// 	}
-
-// 	if len(errFields) == 0 {
-// 		valid = true
-// 	}
-// 	return
-// }
-
-func (cs *coreValueStore) ListCoreValues(ctx context.Context, organisationID int64) (coreValues []CoreValue, err error) {
-	coreValues = make([]CoreValue, 0)
+func (cs *coreValueStore) ListCoreValues(ctx context.Context, organisationID int64) (coreValues []dto.ListCoreValuesResp, err error) {
 	err = cs.DB.SelectContext(
 		ctx,
 		&coreValues,
@@ -115,7 +81,7 @@ func (cs *coreValueStore) ListCoreValues(ctx context.Context, organisationID int
 	return
 }
 
-func (cs *coreValueStore) GetCoreValue(ctx context.Context, organisationID, coreValueID int64) (coreValue CoreValue, err error) {
+func (cs *coreValueStore) GetCoreValue(ctx context.Context, organisationID, coreValueID int64) (coreValue dto.GetCoreValueResp, err error) {
 	err = cs.DB.GetContext(
 		ctx,
 		&coreValue,
@@ -136,7 +102,7 @@ func (cs *coreValueStore) GetCoreValue(ctx context.Context, organisationID, core
 	return
 }
 
-func (cs *coreValueStore) CreateCoreValue(ctx context.Context, organisationID int64, userId int64, coreValue CoreValue) (resp CoreValue, err error) {
+func (cs *coreValueStore) CreateCoreValue(ctx context.Context, organisationID int64, userId int64, coreValue dto.CreateCoreValueReq) (resp dto.CreateCoreValueResp, err error) {
 	now := time.Now()
 	err = cs.DB.GetContext(
 		ctx,
@@ -163,10 +129,13 @@ func (cs *coreValueStore) CreateCoreValue(ctx context.Context, organisationID in
 	return
 }
 
-func (cs *coreValueStore) DeleteCoreValue(ctx context.Context, organisationID, coreValueID int64) (err error) {
+func (cs *coreValueStore) DeleteCoreValue(ctx context.Context, organisationID, coreValueID int64, userId int64) (err error) {
+	now := time.Now()
 	_, err = cs.DB.ExecContext(
 		ctx,
 		deleteSubCoreValueQuery,
+		userId,
+		now,
 		organisationID,
 		coreValueID,
 	)
@@ -182,6 +151,8 @@ func (cs *coreValueStore) DeleteCoreValue(ctx context.Context, organisationID, c
 	_, err = cs.DB.ExecContext(
 		ctx,
 		deleteCoreValueQuery,
+		userId,
+		now,
 		organisationID,
 		coreValueID,
 	)
@@ -197,7 +168,7 @@ func (cs *coreValueStore) DeleteCoreValue(ctx context.Context, organisationID, c
 	return
 }
 
-func (cs *coreValueStore) UpdateCoreValue(ctx context.Context, organisationID int64, coreValueID int64, updateReq dto.UpdateQueryRequest) (resp CoreValue, err error) {
+func (cs *coreValueStore) UpdateCoreValue(ctx context.Context, organisationID int64, coreValueID int64, updateReq dto.UpdateQueryRequest) (resp dto.UpdateCoreValuesResp, err error) {
 	now := time.Now()
 	err = cs.DB.GetContext(
 		ctx,
@@ -241,6 +212,36 @@ func (cs *coreValueStore) CheckOrganisation(ctx context.Context, organisationId 
 			"org_id": organisationId,
 		}).Error("Error while checking organisation")
 		err = apperrors.InvalidOrgId
+	}
+
+	return
+}
+
+func (cs *coreValueStore) CheckUniqueCoreVal(ctx context.Context, organisationId int64, text string) (isUnique bool, err error) {
+	isUnique = false
+	resp := []int64{}
+	err = cs.DB.SelectContext(
+		ctx,
+		&resp,
+		checkUniqueCoreVal,
+		organisationId,
+		text,
+	)
+
+	fmt.Println("resp: ", resp)
+	fmt.Println("err: ", err)
+
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"err": err.Error(),
+		}).Error("Error while checking organisation")
+		err = apperrors.InternalServerError
+		return
+	}
+
+	if len(resp) <= 0 {
+		isUnique = true
+		return
 	}
 
 	return

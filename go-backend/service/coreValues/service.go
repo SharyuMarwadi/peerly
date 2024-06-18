@@ -15,11 +15,11 @@ type service struct {
 }
 
 type Service interface {
-	ListCoreValues(ctx context.Context, organisationID string) (coreValues []db.CoreValue, err error)
-	GetCoreValue(ctx context.Context, organisationID string, coreValueID string) (coreValue db.CoreValue, err error)
-	CreateCoreValue(ctx context.Context, organisationID string, userId int64, coreValue db.CoreValue) (resp db.CoreValue, err error)
-	DeleteCoreValue(ctx context.Context, organisationID string, coreValueID string) (err error)
-	UpdateCoreValue(ctx context.Context, organisationID string, coreValueID string, coreValue dto.UpdateQueryRequest) (resp db.CoreValue, err error)
+	ListCoreValues(ctx context.Context, organisationID string) (resp []dto.ListCoreValuesResp, err error)
+	GetCoreValue(ctx context.Context, organisationID string, coreValueID string) (coreValue dto.GetCoreValueResp, err error)
+	CreateCoreValue(ctx context.Context, organisationID string, userId int64, coreValue dto.CreateCoreValueReq) (resp dto.CreateCoreValueResp, err error)
+	DeleteCoreValue(ctx context.Context, organisationID string, coreValueID string, userId int64) (err error)
+	UpdateCoreValue(ctx context.Context, organisationID string, coreValueID string, coreValue dto.UpdateQueryRequest) (resp dto.UpdateCoreValuesResp, err error)
 }
 
 func NewService(coreValuesRepo db.CoreValueStorer) Service {
@@ -28,7 +28,12 @@ func NewService(coreValuesRepo db.CoreValueStorer) Service {
 	}
 }
 
-func (cs *service) ListCoreValues(ctx context.Context, organisationID string) (coreValues []db.CoreValue, err error) {
+func (cs *service) ListCoreValues(ctx context.Context, organisationID string) (resp []dto.ListCoreValuesResp, err error) {
+
+	if organisationID == "" {
+		err = apperrors.InvalidOrgId
+		return
+	}
 
 	orgId, err := VarsStringToInt(organisationID, "organisationId")
 	if err != nil {
@@ -40,25 +45,17 @@ func (cs *service) ListCoreValues(ctx context.Context, organisationID string) (c
 		return
 	}
 
-	coreValues, err = cs.coreValuesRepo.ListCoreValues(ctx, orgId)
+	resp, err = cs.coreValuesRepo.ListCoreValues(ctx, orgId)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while fetching data")
-		err = apperrors.InernalServerError
+		err = apperrors.InternalServerError
 	}
 
 	return
 
 }
 
-func (cs *service) GetCoreValue(ctx context.Context, organisationID string, coreValueID string) (coreValue db.CoreValue, err error) {
-	// orgId, err := strconv.ParseInt(organisationID, 10, 64)
-	// if err != nil {
-	// 	logger.WithField("err", err.Error()).Error("Error while parsing organisation_id from url")
-	// 	msgObj = dto.MessageObject{
-	// 		Message: "Internal server error",
-	// 	}
-	// 	return
-	// }
+func (cs *service) GetCoreValue(ctx context.Context, organisationID string, coreValueID string) (coreValue dto.GetCoreValueResp, err error) {
 
 	orgId, err := VarsStringToInt(organisationID, "organisationId")
 	if err != nil {
@@ -69,15 +66,6 @@ func (cs *service) GetCoreValue(ctx context.Context, organisationID string, core
 	if err != nil {
 		return
 	}
-
-	// coreValId, err := strconv.ParseInt(coreValueID, 10, 64)
-	// if err != nil {
-	// 	logger.WithField("err", err.Error()).Error("Error while parsing coreValueId from url")
-	// 	msgObj = dto.MessageObject{
-	// 		Message: "Internal server error",
-	// 	}
-	// 	return
-	// }
 
 	coreValId, err := VarsStringToInt(coreValueID, "coreValueId")
 	if err != err {
@@ -93,7 +81,7 @@ func (cs *service) GetCoreValue(ctx context.Context, organisationID string, core
 	return
 }
 
-func (cs *service) CreateCoreValue(ctx context.Context, organisationID string, userId int64, coreValue db.CoreValue) (resp db.CoreValue, err error) {
+func (cs *service) CreateCoreValue(ctx context.Context, organisationID string, userId int64, coreValue dto.CreateCoreValueReq) (resp dto.CreateCoreValueResp, err error) {
 
 	orgId, err := VarsStringToInt(organisationID, "organisationId")
 	if err != nil {
@@ -102,6 +90,15 @@ func (cs *service) CreateCoreValue(ctx context.Context, organisationID string, u
 
 	err = cs.coreValuesRepo.CheckOrganisation(ctx, orgId)
 	if err != nil {
+		return
+	}
+
+	isUnique, err := cs.coreValuesRepo.CheckUniqueCoreVal(ctx, orgId, coreValue.Text)
+	if err != nil {
+		return
+	}
+	if !isUnique {
+		err = apperrors.UniqueCoreValue
 		return
 	}
 
@@ -113,21 +110,14 @@ func (cs *service) CreateCoreValue(ctx context.Context, organisationID string, u
 	resp, err = cs.coreValuesRepo.CreateCoreValue(ctx, orgId, userId, coreValue)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while creating core value")
-		err = apperrors.InernalServerError
+		err = apperrors.InternalServerError
 		return
 	}
 
 	return
 }
 
-func (cs *service) DeleteCoreValue(ctx context.Context, organisationID string, coreValueID string) (err error) {
-
-	// organisationID, err := strconv.ParseInt(vars["organisation_id"], 10, 64)
-	// if err != nil {
-	// 	logger.WithField("err", err.Error()).Error("Error while parsing organisation_id from url")
-	// 	rw.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
+func (cs *service) DeleteCoreValue(ctx context.Context, organisationID string, coreValueID string, userId int64) (err error) {
 
 	orgId, err := VarsStringToInt(organisationID, "organisationId")
 	if err != nil {
@@ -139,28 +129,26 @@ func (cs *service) DeleteCoreValue(ctx context.Context, organisationID string, c
 		return
 	}
 
-	// coreValueID, err := strconv.ParseInt(vars["id"], 10, 64)
-	// if err != nil {
-	// 	logger.WithField("err", err.Error()).Error("Error while parsing core value id from url")
-	// 	rw.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-
 	coreValId, err := VarsStringToInt(coreValueID, "coreValueId")
 	if err != nil {
 		return
 	}
 
-	_, err = cs.coreValuesRepo.GetCoreValue(ctx, orgId, coreValId)
+	coreValue, err := cs.coreValuesRepo.GetCoreValue(ctx, orgId, coreValId)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while fetching data")
 		return
 	}
 
-	err = cs.coreValuesRepo.DeleteCoreValue(ctx, orgId, coreValId)
+	if coreValue.SoftDelete {
+		err = apperrors.InvalidCoreValueData
+		return
+	}
+
+	err = cs.coreValuesRepo.DeleteCoreValue(ctx, orgId, coreValId, userId)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while deleting core value")
-		err = apperrors.InernalServerError
+		err = apperrors.InternalServerError
 
 		return
 	}
@@ -168,7 +156,7 @@ func (cs *service) DeleteCoreValue(ctx context.Context, organisationID string, c
 	return
 }
 
-func (cs *service) UpdateCoreValue(ctx context.Context, organisationID string, coreValueID string, reqData dto.UpdateQueryRequest) (resp db.CoreValue, err error) {
+func (cs *service) UpdateCoreValue(ctx context.Context, organisationID string, coreValueID string, reqData dto.UpdateQueryRequest) (resp dto.UpdateCoreValuesResp, err error) {
 
 	orgId, err := VarsStringToInt(organisationID, "organisationId")
 	if err != nil {
@@ -194,6 +182,11 @@ func (cs *service) UpdateCoreValue(ctx context.Context, organisationID string, c
 		return
 	}
 
+	if coreValue.SoftDelete {
+		err = apperrors.InvalidCoreValueData
+		return
+	}
+
 	//set empty fields
 	if reqData.Text == "" {
 		reqData.Text = coreValue.Text
@@ -208,7 +201,7 @@ func (cs *service) UpdateCoreValue(ctx context.Context, organisationID string, c
 	resp, err = cs.coreValuesRepo.UpdateCoreValue(ctx, orgId, coreValId, reqData)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while updating core value")
-		err = apperrors.InernalServerError
+		err = apperrors.InternalServerError
 
 		return
 	}

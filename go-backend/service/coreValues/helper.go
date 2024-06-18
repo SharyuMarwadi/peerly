@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"joshsoftware/peerly/apperrors"
 	"joshsoftware/peerly/db"
+	"joshsoftware/peerly/pkg/dto"
 	"strconv"
 
 	logger "github.com/sirupsen/logrus"
@@ -47,7 +48,7 @@ func validateParentCoreValue(ctx context.Context, storer db.CoreValueStorer, org
 // 	return
 // }
 
-func Validate(ctx context.Context, coreValue db.CoreValue, storer db.CoreValueStorer, organisationID int64) (err error) {
+func Validate(ctx context.Context, coreValue dto.CreateCoreValueReq, storer db.CoreValueStorer, organisationID int64) (err error) {
 
 	if coreValue.Text == "" {
 		err = apperrors.TextFieldBlank
@@ -65,15 +66,15 @@ func Validate(ctx context.Context, coreValue db.CoreValue, storer db.CoreValueSt
 }
 
 func VarsStringToInt(inp string, label string) (result int64, err error) {
-	// fmt.Print("input string: ", inp)
+
+	if len(inp) <= 0 {
+		err = apperrors.InvalidOrgId
+		return
+	}
 	result, err = strconv.ParseInt(inp, 10, 64)
-	// fmt.Print("result of parsing: ", result)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error(fmt.Scanf("Error while parsing %s from url", label))
-		// msgObj = dto.MessageObject{
-		// 	Message: "Internal server error",
-		// }
-		err = apperrors.InernalServerError
+		err = apperrors.InternalServerError
 		return
 
 	}
