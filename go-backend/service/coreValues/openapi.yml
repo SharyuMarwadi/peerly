@@ -27,6 +27,7 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 1
         - name: coreValueId
           in: path
           description: ID of corevalue
@@ -34,6 +35,15 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 32
+        - in: header
+          name: Accept-Version
+          required: true
+          description: Defines the media type and version of the API endpoint
+          schema:
+            enum:
+              - 'application/vnd.peerly.v1'
+            type: string
       requestBody:
         description: Update an existing core value in the organisation
         content:
@@ -65,6 +75,7 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 1
         - name: coreValueId
           in: path
           description: ID of corevalue
@@ -72,6 +83,15 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 30
+        - in: header
+          name: Accept-Version
+          required: true
+          description: Defines the media type and version of the API endpoint
+          schema:
+            enum:
+              - 'application/vnd.peerly.v1'
+            type: string
       responses:
         '200':
           description: successful operation
@@ -98,6 +118,7 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 1
         - name: coreValueId
           in: path
           description: ID of corevalue
@@ -105,6 +126,15 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 30
+        - in: header
+          name: Accept-Version
+          required: true
+          description: Defines the media type and version of the API endpoint
+          schema:
+            enum:
+              - 'application/vnd.peerly.v1'
+            type: string
       responses:
         '200':
           description: Delete sucessfull
@@ -128,6 +158,15 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 1
+        - in: header
+          name: Accept-Version
+          required: true
+          description: Defines the media type and version of the API endpoint
+          schema:
+            enum:
+              - 'application/vnd.peerly.v1'
+            type: string
       requestBody:
         description: Create a new core value
         content:
@@ -164,8 +203,9 @@ paths:
           schema:
             type: integer
             format: int64
+          example: 1
         - in: header
-          name: Accept
+          name: Accept-Version
           required: true
           description: Defines the media type and version of the API endpoint
           schema:

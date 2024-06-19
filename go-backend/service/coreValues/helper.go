@@ -18,7 +18,7 @@ func validateParentCoreValue(ctx context.Context, storer db.CoreValueStorer, org
 		return
 	}
 
-	if coreValue.ParentID != nil {
+	if coreValue.ParentID != nil || coreValue.SoftDelete {
 		logger.Error("Invalid parent core value id")
 		return
 	}

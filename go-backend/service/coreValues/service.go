@@ -198,6 +198,15 @@ func (cs *service) UpdateCoreValue(ctx context.Context, organisationID string, c
 		reqData.ThumbnailUrl = *coreValue.ThumbnailURL
 	}
 
+	isUnique, err := cs.coreValuesRepo.CheckUniqueCoreVal(ctx, orgId, reqData.Text)
+	if err != nil {
+		return
+	}
+	if !isUnique && reqData.Text != coreValue.Text {
+		err = apperrors.UniqueCoreValue
+		return
+	}
+
 	resp, err = cs.coreValuesRepo.UpdateCoreValue(ctx, orgId, coreValId, reqData)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error("Error while updating core value")

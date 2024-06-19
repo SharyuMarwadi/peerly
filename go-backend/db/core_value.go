@@ -32,19 +32,19 @@ func NewCoreValueRepo(db *sqlx.DB) CoreValueStorer {
 }
 
 const (
-	listCoreValuesQuery  = `SELECT id, org_id, text, description, parent_id, created_at, updated_at  FROM coreValues WHERE org_id = $1 and soft_delete = false`
-	getCoreValueQuery    = `SELECT id, org_id, text, description, parent_id, soft_delete FROM coreValues WHERE org_id = $1 and id = $2`
-	createCoreValueQuery = `INSERT INTO coreValues (org_id, text,
+	listCoreValuesQuery  = `SELECT id, org_id, text, description, parent_id, created_at, updated_at  FROM core_values WHERE org_id = $1 and soft_delete = false`
+	getCoreValueQuery    = `SELECT id, org_id, text, description, parent_id, soft_delete FROM core_values WHERE org_id = $1 and id = $2`
+	createCoreValueQuery = `INSERT INTO core_values (org_id, text,
 		description, parent_id, thumbnail_url,created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, org_id, text, description, parent_id, thumbnail_url, created_by, created_at`
-	// deleteSubCoreValueQuery = `DELETE FROM coreValues WHERE orgId = $1 and parentId = $2`
-	deleteSubCoreValueQuery = `UPDATE coreValues SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and parent_id = $4`
-	// deleteCoreValueQuery    = `DELETE FROM coreValues WHERE orgId = $1 and id = $2`
-	deleteCoreValueQuery = `UPDATE coreValues SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and id = $4`
-	updateCoreValueQuery = `UPDATE coreValues SET (text, description, thumbnail_url, updated_at) =
+	// deleteSubCoreValueQuery = `DELETE FROM core_values WHERE orgId = $1 and parentId = $2`
+	deleteSubCoreValueQuery = `UPDATE core_values SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and parent_id = $4`
+	// deleteCoreValueQuery    = `DELETE FROM core_values WHERE orgId = $1 and id = $2`
+	deleteCoreValueQuery = `UPDATE core_values SET soft_delete = true, soft_delete_by = $1, updated_at = $2 WHERE org_id = $3 and id = $4`
+	updateCoreValueQuery = `UPDATE core_values SET (text, description, thumbnail_url, updated_at) =
 		($1, $2, $3, $4) where id = $5 and org_id = $6 RETURNING id, org_id, text, description, parent_id, thumbnail_url, updated_at`
 
 	checkOrganisationQuery = `SELECT id from organizations WHERE id = $1`
-	checkUniqueCoreVal     = `SELECT id from coreValues WHERE org_id = $1 and text = $2`
+	checkUniqueCoreVal     = `SELECT id from core_values WHERE org_id = $1 and text = $2`
 )
 
 // CoreValue - struct representing a core value object

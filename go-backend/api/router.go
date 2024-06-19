@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	versionHeader = "Accept"
+	versionHeader = "Accept-Version"
 	authHeader    = "X-Auth-Token"
 )
 
