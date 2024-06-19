@@ -1,4 +1,4 @@
-CREATE TABLE public.corevalues (
+CREATE TABLE core_values (
     id SERIAL PRIMARY KEY,
     org_id INTEGER NOT NULL,
     text VARCHAR(225) NOT NULL,
